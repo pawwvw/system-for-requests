@@ -1,14 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm"
 
-
-enum Status {
-    'new', 'in_progress', 'completed', 'canceled'
+export enum Status {
+    NEW = 'new', IN_PROGRESS = 'in_progress', COMPLETED = 'completed', CANCELED = 'canceled'
 }
 
-
 @Entity()
-export class Request {
-
+export class RequestEntity {
     @PrimaryGeneratedColumn()
     id: number
 
