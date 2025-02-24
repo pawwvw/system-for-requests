@@ -38,7 +38,15 @@ router.patch('/requests/:id/in-progress', async (req: Request, res: Response): P
         const request = await requestRepository.findOne({where: {id: +id}});
         if (!request){
             return res.status(404).send(`the request id: ${id} was not found`);
-        };
+        }
+
+        if (request.solution){
+            request.solution = null;
+        }
+
+        if (request.cancellation_reason){
+            request.cancellation_reason = null;
+        }
 
         request.status = Status.IN_PROGRESS;
 
@@ -47,8 +55,8 @@ router.patch('/requests/:id/in-progress', async (req: Request, res: Response): P
         return res.status(200).send(`the request id: ${id} was took to work`);
     } catch (error){
         return res.status(500).send(error);
-    };
-});
+    }
+})
 
 // complete the request
 router.patch('/requests/:id/complete', async (req: Request, res: Response): Promise<any> => {
@@ -58,15 +66,15 @@ router.patch('/requests/:id/complete', async (req: Request, res: Response): Prom
         const request = await requestRepository.findOne({where: {id: +id}});
         if (!request){
             return res.status(404).send(`the request id: ${id} was not found`);
-        };
+        }
 
         if (!solution){
             return res.status(400).send('to comlete the request, you need the solution');
-        };
+        }
 
         if (request.status !== Status.IN_PROGRESS){
             return res.status(400).send('to comlete the request, it status must be "in_progress"');
-        };;
+        }
 
         request.status = Status.COMPLETED;
         request.solution = solution;
@@ -76,8 +84,8 @@ router.patch('/requests/:id/complete', async (req: Request, res: Response): Prom
         return res.status(200).send(`the request id: ${id} was completed`);
     } catch (error){
         return res.status(500).send(error);
-    };
-});
+    }
+})
 
 // cancel the request
 router.patch('/requests/:id/cancel', async (req: Request, res: Response): Promise<any> => {
@@ -87,15 +95,15 @@ router.patch('/requests/:id/cancel', async (req: Request, res: Response): Promis
         const request = await requestRepository.findOne({where: {id: +id}});
         if (!request){
             return res.status(404).send(`the request id: ${id} was not found`);
-        };
+        }
 
         if (!cancellation_reason){
             return res.status(400).send('to cancel the request, you need the cancellation_reason');
-        };
+        }
 
         if (request.status !== Status.IN_PROGRESS){
             return res.status(400).send('to cancel the request, it status must be "in_progress"');
-        };
+        }
 
         request.status = Status.CANCELED;
         request.cancellation_reason = cancellation_reason;
@@ -105,16 +113,14 @@ router.patch('/requests/:id/cancel', async (req: Request, res: Response): Promis
         return res.status(200).send(`the request id: ${id} was canceled`);
     } catch (error){
         return res.status(500).send(error);
-    };
+    }
     
-});
+})
 
 // get a requests by date or get all requests
 router.get('/requests', async (req: Request, res: Response): Promise<any> => {
     try{
         const { date, startDate, endDate } = req.query;
-
-        console.log(new Date (date as string))
 
         let filters:any = {};
 
@@ -139,7 +145,35 @@ router.get('/requests', async (req: Request, res: Response): Promise<any> => {
         return res.status(200).send(requests);
     } catch (error){
         return res.status(500).send(error);
-    };
-});
+    }
+})
 
+// cancel all request that are in progress
+router.patch('/requests/cancel-all-in-progress', async (req: Request, res: Response): Promise<any> => {
+    try{
+        const { cancellation_reason } = req.body;
+
+        if (!cancellation_reason){
+            return res.status(400).send("to cancel the requests, you need the cancellation_reason");
+        };
+
+        const requests =await requestRepository.find({where:{status: Status.IN_PROGRESS}});
+
+        if (requests.length === 0){
+            return res.status(404).send('No requests in progress to cancel');
+        }
+
+        for (const request of requests){
+            request.status = Status.CANCELED;
+            request.cancellation_reason = cancellation_reason;
+        }
+
+        await requestRepository.save(requests);
+
+        return res.status(200).send(`Canceled ${requests.length} requests`)
+
+    } catch (error){
+        return res.status(500).send(error);
+    };
+})
 export default router;
